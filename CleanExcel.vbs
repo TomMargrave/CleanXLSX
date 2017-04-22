@@ -29,6 +29,7 @@ Dim objWB        ' Excel workbook object'
 Dim objWS        ' Excel work sheet object'
 Dim oFSODel      ' file System Object to clean up temporary files.'
 Dim outFile      ' holder for temporary file holds sheet names and order.'
+Dim sHeaderLog   ' holds the log of any changes to header'
 Dim srcOne       ' holds the active source xlsx file when rebuilding doc'
 Dim srcTwo       ' holds the active source xlsx file when rebuilding doc'
 Dim strCSVFile   ' holds current CSV file name and path'
@@ -42,13 +43,21 @@ Dim tgtXLSX      ' holds the output file path and name'
 Dim totalColumn  ' toltal columns removed from sheet'
 Dim totalNBSpace ' total non-breaking space'
 Dim totalRow     ' total rows removed from sheet'
+Dim bExcelVisible ' boolean to set Excel Visible'
+Dim bExcelAlerts   ' boolean to set Excel display Alerts'
 
 Const ForReading = 1
 Const ForWriting = 2
+
+bExcelVisible = False
+bExcelAlerts = False
 outFile="Sheet.txt"
 
 Set objFSOSheet = CreateObject("Scripting.FileSystemObject")
 Set objFSO = CreateObject("Scripting.FileSystemObject")
+Set myLog = objFSO.OpenTextFile("D:\tom\Documents\GitHub\CleanXLSX\test\CleanExcel.log", ForWriting, True)
+myLog.WriteLine(now)
+myLog.WriteLine "Started run"
 
 myProcess = 0
 cnt = WScript.Arguments.Count
@@ -59,7 +68,7 @@ If cnt > 2 then
 End If
 
 'Check to see If Excel is running'
-If IsProcessRunning(".", "Excel.exe") Then
+If IsProcessRunning("Excel.exe") Then
     myEcho("Excel is running. " & vbCrLf & " Please close Excel to process." )
     cnt=0
 End If
@@ -67,6 +76,7 @@ End If
 'Check the source file'
 If cnt > 0 Then
     strFileName =  WScript.Arguments.Item(0)
+    myLog.WriteLine "Source file:" & strFileName
     If objFSO.FileExists(strFileName) Then
         Set objFile = objFSO.GetFile(strFileName)
         cDir = objFSO.GetParentFolderName(objFile)
@@ -99,20 +109,34 @@ Else
     tgtXLSX= "New.xlsx"
 End If
 
+myLog.WriteLine "Target file: " & tgtXLSX
+'log setting of Supress
+If cnt > 2 then
+    myLog.WriteLine "Supress Dialogs set"
+End If
+myLog.WriteLine  vbCrLf
+
+
 tgtXLSX = cDir & "\" & tgtXLSX
 
 If myProcess = 1 then
     Call CleanUp()
     Call WriteFile(strFileName)
     Call CheckCSV()
+    Call CheckColumnHeaders()
     Call CSVtoExcel()
     Call ExcelCombine()
     Call CleanUp()
+    if Len(sHeaderLog) > 4 then
+        myEcho "# # # # # #" & sHeaderLog & vbCrLf &  "# # # # # #" & vbCrLf
+    End If
     myEcho(strTotals)
 Else
     If Not(supressNotes=1) Then displayHELP()
 End If
 
+myLog.Close
+Set myLog = Nothing
 Set objFSO = Nothing
 
 '#######################################################################
@@ -155,8 +179,8 @@ Sub ExcelCombine()
             On Error GOTO 0
             ' Set objExcel = CreateObject("Excel.Application")
 
-            objExcel.Visible = false
-            objExcel.DisplayAlerts=false
+            objExcel.Visible = bExcelVisible
+            objExcel.DisplayAlerts = bExcelAlerts
 
             Set wbSource = objExcel.Workbooks.Open(srcOne)
             Set objWorkbook1 = objExcel.Workbooks.Open(srcTwo)
@@ -236,6 +260,92 @@ Sub WriteFile(ByVal strFileName)
 End Sub
 
 '**********************************************************************
+' Sub Name: CheckColumnHeaders
+' Purpose:  Check CSV header for bad characters
+' Author: Tom Margrave
+' Input:
+'	None
+' Return:
+' Prerequisites:
+''**********************************************************************
+Sub CheckColumnHeaders()
+    Set objFSO = CreateObject("Scripting.FileSystemObject")
+    Set objFileSheet = objFSOSheet.OpenTextFile(outFile)
+    Set objFSOcsv = CreateObject("Scripting.FileSystemObject")
+    Do Until objFileSheet.AtEndOfStream
+        strLine= objFileSheet.ReadLine
+        strCSVFile = cDir & "\" & strLine & ".csv "
+        iLine=0
+        Set objFilecsv = objFSOcsv.OpenTextFile(strCSVFile, ForReading)
+        sFullFile  = "~~~"
+        Do Until objFilecsv.AtEndOfStream
+            strText = objFilecsv.ReadLine
+            iLine = iLine + 1
+            If iLine = 1 Then
+                arrayLine=Split(strText,",")
+                strText = "~~~"
+
+                For Each sColumn in arrayLine
+
+                    sColumn = checkfor(sColumn, "<")
+                    sColumn = checkfor(sColumn, ">")
+                    sColumn = checkfor(sColumn, "`")
+                    sColumn = checkfor(sColumn, "~")
+                    sColumn = checkfor(sColumn, "%")
+                    if strText = "~~~" Then
+                        strText =  sColumn
+                    Else
+                        strText = strText & "," & sColumn
+                    End if
+                Next
+            End if
+
+            If sFullFile =  "~~~"  Then
+                sFullFile =  strText
+            Else
+                sFullFile =  sFullFile & vbCrLf & strText
+            End If
+        Loop 'csv lines'
+
+        objFilecsv.Close
+
+        'write lines back to CSV File'
+        Set objFile = objFSO.OpenTextFile(strCSVFile, ForWriting)
+        objFile.WriteLine sFullFile
+        objFile.Close
+        Set objFile = Nothing
+
+    Loop 'sheet'
+    objFileSheet.Close
+    Set objFilecsv = Nothing
+    Set objFSOcsv = Nothing
+    Set objFileSheet = Nothing
+    Set objFSO = Nothing
+End Sub
+
+Function checkfor(sVar, sSearch)
+    'count of search items
+    cnt=countExist(sVar, sSearch)
+    'set default return variable
+    checkfor = sVar
+
+    if cnt > 0 Then
+        sReplace = "_"
+        checkfor = Replace(sVar, sSearch, sReplace)
+        'Log issue'
+        sHeaderLog = sHeaderLog & vbCrLf & "Sheet: " & strLine
+        sHeaderLog = sHeaderLog & vbCrLf & "Column: " & sVar
+        sHeaderLog = sHeaderLog & vbCrLf & " has character: " & sSearch
+        sHeaderLog = sHeaderLog & vbCrLf & " Replaced with: " & checkfor
+    End If
+    'body
+End Function
+
+
+
+
+
+'**********************************************************************
 ' Sub Name: CheckCSV
 ' Purpose:  Check and remove Non-breaking spaces, blank rows, and blank columns
 '       from CSV file
@@ -271,12 +381,14 @@ Sub CheckCSV()
             totalColumn = totalColumn + cnt
         Loop
 
+        ' Look for empty rows
         strReplace ="" & Chr(13) & Chr(10)
         strSearch = Chr(13) & Chr(10) & "," & Chr(13) & Chr(10)
         cnt=countExist(strText, strSearch)
         strText = Replace(strText, strSearch, strReplace)
         totalRow = cnt
 
+        ' Look for non-breaking spaces
         strReplace =" "
         strSearch = Chr(160)
         cnt=countExist(strText, strSearch)
@@ -320,8 +432,8 @@ Sub CSVtoExcel()
         'Create Spreadsheet
         Set objExcel = CreateObject("Excel.Application")
 
-        objExcel.Visible = false
-        objExcel.DisplayAlerts= false
+        objExcel.Visible = bExcelVisible
+        objExcel.DisplayAlerts= bExcelAlerts
 
         'Import CSV into Spreadsheet
         Set objWorkbook = objExcel.Workbooks.Open(srcCSVFile)
@@ -446,6 +558,7 @@ Function myEcho(strTemp)
     If Not(supressNotes=1) Then
         WScript.Echo strTemp
     End If
+    myLog.WriteLine strTemp
 
 End Function
 
@@ -458,7 +571,8 @@ End Function
 ' Return: None
 ' Prerequisites:
 '**********************************************************************
-Function IsProcessRunning(strComputer, strProcess)
+Function IsProcessRunning( strProcess)
+    strComputer = "."
     Dim Process, strObject
     IsProcessRunning = False
     strObject   = "winmgmts://" & strComputer
@@ -483,11 +597,11 @@ End Function
 Function waitExcelStop()
 'Check to see If Excel is running'
 
-    If IsProcessRunning(".", "Excel.exe") Then
+    If IsProcessRunning("Excel.exe") Then
         bRun=True
         Do While bRun=True
                 ' body
-            If NOT(IsProcessRunning(".", "Excel.exe")) Then
+            If NOT(IsProcessRunning("Excel.exe")) Then
                 bRun=False
             else
                 WScript.Sleep(1000)
