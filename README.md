@@ -10,6 +10,7 @@ Rarely when using HPE UFT/QTP and Microsoft Excel there could be corruptions wit
 2. Importing data that has been modified by Microsoft Excel that is not supported by UFT third-party tool.   Old version of UFT(formally QTP) would not work if there was formatting or unsupported functions.   This VBScript will strip out the formatting.
 3. When importing from HTML pages or other point sometimes the page is generated with Non-Breaking spaces.  These Non-Breaking Spaces look like a space but when doing checkpoints with UFT they are not the same character.  This script will look for Non-Breaking spaces (Ascii Decimal 160 Hexadecimal A0) and covert the characters to spaces.
 4. When Data Driving UFT will not allow column Headers containing <>~`?%
+5. Check Column headers for duplicate names. If found it is reported and the duplicate is changes with _DUPE added to end of the column name.
 
 ## Overview of Code steps
 Cleaning is done by:

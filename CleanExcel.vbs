@@ -45,13 +45,14 @@ Dim totalNBSpace ' total non-breaking space'
 Dim totalRow     ' total rows removed from sheet'
 Dim bExcelVisible ' boolean to set Excel Visible'
 Dim bExcelAlerts   ' boolean to set Excel display Alerts'
+Dim sColumnDupe     ' results of duplicate column names
 
 Const ForReading = 1
 Const ForWriting = 2
 
 bExcelVisible = False
 bExcelAlerts = False
-outFile="Sheet.txt"
+outFile = "Sheet.txt"
 
 Set objFSOSheet = CreateObject("Scripting.FileSystemObject")
 Set objFSO = CreateObject("Scripting.FileSystemObject")
@@ -70,7 +71,7 @@ End If
 'Check to see If Excel is running'
 If IsProcessRunning("Excel.exe") Then
     myEcho("Excel is running. " & vbCrLf & " Please close Excel to process." )
-    cnt=0
+    cnt = 0
 End If
 
 'Check the source file'
@@ -95,7 +96,7 @@ If cnt > 1 Then
     If(Instr(LCase(Right(tgtXLSX, 5)),".xls") > 0) AND (Len(tgtXLSX) > 6) Then
         myProcess = 1
     Else
-        strText ="Second Attribute does not have .xlsx Extension or " & vbCrLf
+        strText = "Second Attribute does not have .xlsx Extension or " & vbCrLf
         strText = strText & "  length is too small"
         myEcho(strText)
         myProcess = 0
@@ -106,7 +107,7 @@ If cnt > 1 Then
         myProcess = 0
     End If
 Else
-    tgtXLSX= "New.xlsx"
+    tgtXLSX = "New.xlsx"
 End If
 
 myLog.WriteLine "Target file: " & tgtXLSX
@@ -127,12 +128,15 @@ If myProcess = 1 then
     Call CSVtoExcel()
     Call ExcelCombine()
     Call CleanUp()
-    if Len(sHeaderLog) > 4 then
+    If Len(sHeaderLog) > 4 then
         myEcho "# # # # # #" & sHeaderLog & vbCrLf &  "# # # # # #" & vbCrLf
+    End If
+    If Len(sColumnDupe) > 4 Then
+        myEcho "# # # # # #" & sColumnDupe & vbCrLf &  "# # # # # #" & vbCrLf
     End If
     myEcho(strTotals)
 Else
-    If Not(supressNotes=1) Then displayHELP()
+    If Not(supressNotes = 1) Then displayHELP()
 End If
 
 myLog.Close
@@ -157,19 +161,19 @@ Set objFSO = Nothing
 Sub ExcelCombine()
     'open sheets to parse thru
     Set objFileSheet = objFSOSheet.OpenTextFile(outFile)
-    cnt=0
+    cnt = 0
     Do Until objFileSheet.AtEndOfStream
-        DoNotSkip=True
-        strLine= objFileSheet.ReadLine
-        If(cnt=0 ) Then
-            srcOne= cDir & "\" & strLine
-            DoNotSkip=false
+        DoNotSkip = True
+        strLine = objFileSheet.ReadLine
+        If(cnt = 0 ) Then
+            srcOne = cDir & "\" & strLine
+            DoNotSkip = false
         elseIf (cnt > 1) then
-            srcOne=  tgtXLSX
-        end If
+            srcOne =  tgtXLSX
+        End If
 
-        srcTwo= cDir & "\" &strLine
-        If(DoNotSkip=True) then
+        srcTwo = cDir & "\" &strLine
+        If(DoNotSkip = True) then
             On Error Resume Next ' Turn on the error handling flag
             Set objExcel = GetObject(,"Excel.Application")
             'If not found, create a new instance.
@@ -217,8 +221,8 @@ Sub ExcelCombine()
             Set wbSource = Nothing
             Set objWorkbook1 = Nothing
 
-        end If
-        cnt=cnt+1
+        End If
+        cnt = cnt+1
         waitExcelStop()
     Loop
     objFileSheet.Close
@@ -261,7 +265,7 @@ End Sub
 
 '**********************************************************************
 ' Sub Name: CheckColumnHeaders
-' Purpose:  Check CSV header for bad characters
+' Purpose:  Check CSV header for bad characters and duplicates
 ' Author: Tom Margrave
 ' Input:
 '	None
@@ -273,32 +277,49 @@ Sub CheckColumnHeaders()
     Set objFileSheet = objFSOSheet.OpenTextFile(outFile)
     Set objFSOcsv = CreateObject("Scripting.FileSystemObject")
     Do Until objFileSheet.AtEndOfStream
-        strLine= objFileSheet.ReadLine
+        strLine = objFileSheet.ReadLine
         strCSVFile = cDir & "\" & strLine & ".csv "
-        iLine=0
+        iLine = 0
         Set objFilecsv = objFSOcsv.OpenTextFile(strCSVFile, ForReading)
-        sFullFile  = "~~~"
+        sFullFile = "~~~"
         Do Until objFilecsv.AtEndOfStream
             strText = objFilecsv.ReadLine
             iLine = iLine + 1
             If iLine = 1 Then
-                arrayLine=Split(strText,",")
+                arrayLine = Split(strText,",")
                 strText = "~~~"
+                totalColumns = ubound(arrayLine)
 
-                For Each sColumn in arrayLine
+                ' For Each sColumn in arrayLine
+                For x = 0 to totalColumns
+sColumn = arrayLine(x)
 
                     sColumn = checkfor(sColumn, "<")
                     sColumn = checkfor(sColumn, ">")
                     sColumn = checkfor(sColumn, "`")
                     sColumn = checkfor(sColumn, "~")
                     sColumn = checkfor(sColumn, "%")
-                    if strText = "~~~" Then
+
+                    'Look for duplicates column names'
+                    sLColumn = LCase(sColumn)
+                    For y = x + 1 to totalColumns
+                        If (sLColumn = lcase(arrayLine(y))) Then
+                            arrayLine(y) = arrayLine(y) & "_DUPE"
+                            sColumnDupe = sColumnDupe & vbCrLf & "Sheet: " & strLine
+                            sColumnDupe = sColumnDupe & vbCrLf & "Duplicate column: "
+                            sColumnDupe = sColumnDupe & vbCrLf & sColumn
+                            sColumnDupe = sColumnDupe & vbCrLf & "  Renamed to: "  & arrayLine(y)
+                            sColumnDupe = sColumnDupe & vbCrLf
+                        End If
+                    Next
+
+                    If strText = "~~~" Then
                         strText =  sColumn
                     Else
                         strText = strText & "," & sColumn
-                    End if
+                    End If
                 Next
-            End if
+            End If
 
             If sFullFile =  "~~~"  Then
                 sFullFile =  strText
@@ -325,11 +346,11 @@ End Sub
 
 Function checkfor(sVar, sSearch)
     'count of search items
-    cnt=countExist(sVar, sSearch)
+    cnt = countExist(sVar, sSearch)
     'set default return variable
     checkfor = sVar
 
-    if cnt > 0 Then
+    If cnt > 0 Then
         sReplace = "_"
         checkfor = Replace(sVar, sSearch, sReplace)
         'Log issue'
@@ -360,38 +381,38 @@ Sub CheckCSV()
     Set objFileSheet = objFSOSheet.OpenTextFile(outFile)
     Set objFSOcsv = CreateObject("Scripting.FileSystemObject")
     Do Until objFileSheet.AtEndOfStream
-        strLine= objFileSheet.ReadLine
+        strLine = objFileSheet.ReadLine
         strCSVFile = cDir & "\" & strLine & ".csv "
 
         Set objFilecsv = objFSOcsv.OpenTextFile(strCSVFile, ForReading)
         strText = objFilecsv.ReadAll
         objFilecsv.Close
-        totalColumn=0
-        totalRow=0
-        totalNBSpace=0
+        totalColumn = 0
+        totalRow = 0
+        totalNBSpace = 0
 
         'set the search and replace to remove extra column'
-        strReplace ="," & Chr(13) & Chr(10)
+        strReplace = "," & Chr(13) & Chr(10)
         strSearch = ",," & Chr(13) & Chr(10)
-        cnt=1
+        cnt = 1
 
-        Do Until cnt=0
-            cnt=countExist(strText, strSearch)
+        Do Until cnt = 0
+            cnt = countExist(strText, strSearch)
             strText = Replace(strText, strSearch, strReplace)
             totalColumn = totalColumn + cnt
         Loop
 
         ' Look for empty rows
-        strReplace ="" & Chr(13) & Chr(10)
+        strReplace = "" & Chr(13) & Chr(10)
         strSearch = Chr(13) & Chr(10) & "," & Chr(13) & Chr(10)
-        cnt=countExist(strText, strSearch)
+        cnt = countExist(strText, strSearch)
         strText = Replace(strText, strSearch, strReplace)
         totalRow = cnt
 
         ' Look for non-breaking spaces
-        strReplace =" "
+        strReplace = " "
         strSearch = Chr(160)
-        cnt=countExist(strText, strSearch)
+        cnt = countExist(strText, strSearch)
         strText = Replace(strText, strSearch, strReplace)
         totalNBSpace = cnt
 
@@ -424,7 +445,7 @@ Sub CSVtoExcel()
     Set objFileSheet = objFSO.OpenTextFile(outFile)
 
     Do Until objFileSheet.AtEndOfStream
-        strLine= objFileSheet.ReadLine
+        strLine = objFileSheet.ReadLine
 
         srcCSVFile =  cDir & "\" & strLine & ".csv "
         tgtXLSFile = cDir & "\" & strLine & ".xlsx"
@@ -433,7 +454,7 @@ Sub CSVtoExcel()
         Set objExcel = CreateObject("Excel.Application")
 
         objExcel.Visible = bExcelVisible
-        objExcel.DisplayAlerts= bExcelAlerts
+        objExcel.DisplayAlerts = bExcelAlerts
 
         'Import CSV into Spreadsheet
         Set objWorkbook = objExcel.Workbooks.Open(srcCSVFile)
@@ -491,7 +512,7 @@ Sub CleanUp()
     If objFSO.FileExists(outFile) Then
         Set objFileSheet = objFSO.OpenTextFile(outFile)
         Do Until objFileSheet.AtEndOfStream
-            strLine= cDir & "\" & objFileSheet.ReadLine
+            strLine = cDir & "\" & objFileSheet.ReadLine
             myDelFile(strLine & ".csv")
             myDelFile( strLine & ".xlsx")
         Loop
@@ -555,7 +576,7 @@ End Function
 ' Prerequisites:
 '**********************************************************************
 Function myEcho(strTemp)
-    If Not(supressNotes=1) Then
+    If Not(supressNotes = 1) Then
         WScript.Echo strTemp
     End If
     myLog.WriteLine strTemp
@@ -575,7 +596,7 @@ Function IsProcessRunning( strProcess)
     strComputer = "."
     Dim Process, strObject
     IsProcessRunning = False
-    strObject   = "winmgmts://" & strComputer
+    strObject = "winmgmts://" & strComputer
     For Each Process in GetObject(strObject).InstancesOf("win32_process")
     If UCase(Process.name) = UCase(strProcess) Then
         IsProcessRunning = True
@@ -598,14 +619,14 @@ Function waitExcelStop()
 'Check to see If Excel is running'
 
     If IsProcessRunning("Excel.exe") Then
-        bRun=True
-        Do While bRun=True
+        bRun = True
+        Do While bRun = True
                 ' body
             If NOT(IsProcessRunning("Excel.exe")) Then
-                bRun=False
+                bRun = False
             else
                 WScript.Sleep(1000)
-                sleepCnt=sleepCnt+1
+                sleepCnt = sleepCnt+1
             End If
             If sleepCnt > 100 Then
                 WScript.Echo "Excel is running and will not close. Exit VBS"
