@@ -56,7 +56,7 @@ outFile = "Sheet.txt"
 
 Set objFSOSheet = CreateObject("Scripting.FileSystemObject")
 Set objFSO = CreateObject("Scripting.FileSystemObject")
-Set myLog = objFSO.OpenTextFile("D:\tom\Documents\GitHub\CleanXLSX\test\CleanExcel.log", ForWriting, True)
+Set myLog = objFSO.OpenTextFile("CleanExcel.log", ForWriting, True)
 myLog.WriteLine(now)
 myLog.WriteLine "Started run"
 
@@ -168,6 +168,7 @@ Sub ExcelCombine()
         If(cnt = 0 ) Then
             srcOne = cDir & "\" & strLine
             DoNotSkip = false
+            myCopyFile srcOne & ".xlsx",tgtXLSX
         elseIf (cnt > 1) then
             srcOne =  tgtXLSX
         End If
@@ -635,4 +636,23 @@ Function waitExcelStop()
         Loop
     End If
     'body
+End Function
+
+ '**********************************************************************
+ '  Function Name: myCopyFile
+ '  Purpose: Copy one file to anohter name./location
+ '  Author: Tom Margrave
+ '  Input:
+ '      src source file
+ '      tgt target file
+ '  Return: None
+ '  Prerequisites:
+ '**********************************************************************
+Function myCopyFile(src, tgt)
+    Dim FSO
+    ' TODO This should have checking to see if file exist.'
+    Set FSO = CreateObject("Scripting.FileSystemObject")
+    FSO.CopyFile src, tgt
+    Set FSO = Nothing
+
 End Function
