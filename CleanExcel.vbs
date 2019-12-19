@@ -1,5 +1,5 @@
 '  Created by :tom.margrave at Orasi Support
-'  File updated by Tom Margrave at Qualitest  
+'  File updated by Tom Margrave at Qualitest Dec 19 2019
 '  File created:Fri Mar 24 2017 16:23:02 GMT-0400 (Eastern Daylight Time)
 '  File Name  CleanExcel.vbs
 ''
