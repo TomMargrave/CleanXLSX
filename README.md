@@ -29,7 +29,7 @@ usage: cleanExcel.vbs "<full path to >\source_file" (target) (supress)
 	
  |Attribute | Optional/Required | Details
  | :--------- |:---: |:--------
- |Source file | Required | Path with file name to Excel to be processed enclosed in quotes.
+ |Source file | Required | Path with file name to Excel to be processed enclosed in double quotes.
  |Target file | Optional | Name of the new Excel file. (Do not use full path, just file name)
  |Suppress | Optional | If values set to '1' all dialogs will be suppressed.
 

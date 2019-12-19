@@ -1,4 +1,5 @@
 '  Created by :tom.margrave at Orasi Support
+'  File updated by Tom Margrave at Qualitest  
 '  File created:Fri Mar 24 2017 16:23:02 GMT-0400 (Eastern Daylight Time)
 '  File Name  CleanExcel.vbs
 ''
@@ -293,7 +294,7 @@ Sub CheckColumnHeaders()
 
                 ' For Each sColumn in arrayLine
                 For x = 0 to totalColumns
-sColumn = arrayLine(x)
+                    sColumn = arrayLine(x)
 
                     sColumn = checkfor(sColumn, "<")
                     sColumn = checkfor(sColumn, ">")
@@ -344,7 +345,15 @@ sColumn = arrayLine(x)
     Set objFileSheet = Nothing
     Set objFSO = Nothing
 End Sub
-
+'**********************************************************************
+' Sub Name: checkfor
+' Purpose:  Check for sVar input and replace then report results to log file
+' Author: Tom Margrave
+' Input:
+'	None
+' Return:
+' Prerequisites:
+''**********************************************************************
 Function checkfor(sVar, sSearch)
     'count of search items
     cnt = countExist(sVar, sSearch)
@@ -360,10 +369,7 @@ Function checkfor(sVar, sSearch)
         sHeaderLog = sHeaderLog & vbCrLf & " has character: " & sSearch
         sHeaderLog = sHeaderLog & vbCrLf & " Replaced with: " & checkfor
     End If
-    'body
 End Function
-
-
 
 
 
@@ -548,23 +554,30 @@ End Function
 ' Return: None
 ' Prerequisites:
 '**********************************************************************
+
 Function displayHELP()
-    strTemp = strTemp & vbCRLF & "This is a tool to clean Excel files. This tool will do the following."
-    strTemp = strTemp & vbCRLF & " "
-    strTemp = strTemp & vbCRLF & "1. Read source Excel file."
-    strTemp = strTemp & vbCRLF & "2. Save each sheet as a CSV file."
-    strTemp = strTemp & vbCRLF & "3. Open each CSV file and do the following."
-    strTemp = strTemp & vbCRLF & "       a. Remove all non-breaking spaces ASCII 160"
-    strTemp = strTemp & vbCRLF & "       b. Remove extra blank columns on the right side of all rows."
-    strTemp = strTemp & vbCRLF & "       c. Remove rows that have no data."
-    strTemp = strTemp & vbCRLF & "4. Convert CSV files to taget EXCEL file."
-    strTemp = strTemp & vbCRLF & " "
-    strTemp = strTemp & vbCRLF & "usage:   cleanExcel.vbs <source file> [<target file> [<supress>]] "
-    strTemp = strTemp & vbCRLF & "    <source file>  Required    Path with file name to Excel to be processed."
-    strTemp = strTemp & vbCRLF & "    <Taget file>   Optional    Name of the new Excel file."
-    strTemp = strTemp & vbCRLF & "    <suppress>     Optional    If values set to '1' all dialogs will be suppressed."
-    strTemp = strTemp & vbCRLF & " "
-    myEcho(strTemp)
+	strTemp = strTemp & vbCRLF & "This is a tool to clean Excel files. This tool will do the following:"
+	strTemp = strTemp & vbCRLF & " "
+	strTemp = strTemp & vbCRLF & "1. Read source Excel file."
+	strTemp = strTemp & vbCRLF & "2. Save each sheet as a .CSV file."
+	strTemp = strTemp & vbCRLF & "3. Open each .CSV file and do the following:"
+	strTemp = strTemp & vbCRLF & vbTAB & "a. Remove all non-breaking spaces: ASCII 160"
+	strTemp = strTemp & vbCRLF & vbTAB & "b. Remove extra blank columns on the right side of all rows."
+	strTemp = strTemp & vbCRLF & vbTAB & "c. Remove rows that have no data."
+	strTemp = strTemp & vbCRLF & "4. Convert .CSV files to target EXCEL file."
+	strTemp = strTemp & vbCRLF
+	strTemp = strTemp & vbCRLF & "syntax:"
+	strTemp = strTemp & vbCRLF & "    cleanExcel.vbs ""path\<source file>"" [<target file> [<suppress>]] "
+	strTemp = strTemp & vbCRLF
+	strTemp = strTemp & vbCRLF & vbTAB & "<source file>" & vbTAB & "Required - Path with file name to be"
+	strTemp = strTemp & vbCRLF & vbTAB & vbTAB & vbTAB &  "    processed. Enclosed in double quotes("")."
+	strTemp = strTemp & vbCRLF
+	strTemp = strTemp & vbCRLF & vbTAB & "<taget file>" & vbTAB & "Optional - Name of the new Excel file."
+	strTemp = strTemp & vbCRLF
+	strTemp = strTemp & vbCRLF & vbTAB & "<suppress>" & vbTAB & "Optional - If value is set to '1', all dialogs"
+	strTemp = strTemp & vbCRLF & vbTAB & vbTAB & vbTAB & "    will be suppressed."
+	strTemp = strTemp & vbCRLF
+	myEcho(strTemp)
 End Function
 
 '**********************************************************************
