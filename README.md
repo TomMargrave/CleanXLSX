@@ -40,12 +40,17 @@ usage:   cleanExcel.vbs source_file (target) (supress)
 
   |Attribute   | Optional/Required  | Details
   | :--------- |:---:      |:--------
-  |Source file | Required  | Path with file name to Excel to be processed.
+  |Source file | Required  | Encapsulated Path with file name to Excel to be processed.
   |Taget file  | Optional  | Name of the new Excel file.
   |Suppress    | Optional  | If values set to '1' all dailogs will be suppressed.
 
 
+## NOTES
+Make sure the source file is path is encapsulated with double quotes.
 
+	CleanExcel.vbs "D:\Tom Margrave\GitHub\CleanXLSX\Input.xls"  bob.xls
+
+ 
 
 ## Acknowledgement
 Thank you to Michael Deveaux for testing and reviewing code.
